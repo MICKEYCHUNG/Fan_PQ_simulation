@@ -4,73 +4,44 @@
 
 ---
 
-## 階段 0:安裝環境
+## 階段 0:安裝環境(原生 Windows,不使用 WSL)
 
-**目的:** OpenFOAM 原生是 Linux 軟體。Windows 上透過 WSL2(Windows 內建的 Linux 子系統)執行,
-不需要雙系統,也不需要虛擬機。ParaView 是看結果的工具,裝在 Windows 即可。
+**背景變更:** 原規劃使用 WSL2 + Ubuntu,但使用者電腦受公司 IT 政策限制,虛擬化(Hyper-V/WSL2/Docker)全數禁用。
+改為使用**原生 Windows 編譯版 OpenFOAM**(ESI v2106,cross-compiled with MinGW,包在 MSYS2 環境裡),
+執行時完全不需要虛擬化技術,以一般 Windows 程式的方式直接執行。
 
-### 0.1 確認電腦規格 `[ ]`
+### 0.1 確認電腦規格 `[x]`
 - 為什麼:核心數與記憶體決定網格能做多大、要開幾個平行處理。
-- 在 Windows 工作管理員 → 效能,記下 CPU 核心數與記憶體(GB)。
-- 完成標準:使用者回報兩個數字。
+- 完成標準:已取得 CPU 核心數與記憶體大小(細節見對話紀錄,不寫入 repo)。
 
-### 0.2 安裝 WSL2 與 Ubuntu `[ ]`
-- 為什麼:提供 OpenFOAM 所需的 Linux 環境。
-- 以「系統管理員身分」開啟 PowerShell,執行:
-  ```powershell
-  wsl --install -d Ubuntu-24.04
-  ```
-  完成後依提示重新開機,再開啟「Ubuntu」,設定 Linux 使用者名稱與密碼(密碼輸入時畫面不會顯示,這是正常的)。
-- 完成標準:在 Ubuntu 視窗輸入 `lsb_release -a` 能看到 Ubuntu 版本。
-- 常見問題:若顯示虛擬化未啟用,需進 BIOS 開啟 Virtualization(VT-x / SVM)。
+### 0.2 確認虛擬化限制,改用原生 Windows 方案 `[x]`
+- 原因:WSL2 因公司 IT 政策(虛擬化/Hyper-V 被鎖)無法使用。
+- 改用 blueCFD 系列的原生 Windows OpenFOAM 編譯版,不需虛擬化。
+- 完成標準:已確認並改用下方 0.3 的既有安裝。
 
-### 0.3 確認 WSL 資源 `[ ]`
-- 為什麼:確認 Linux 端看得到的核心與記憶體。
-- 在 Ubuntu 輸入 `nproc`(核心數)與 `free -h`(記憶體)。
-- 預設 WSL 只使用約一半記憶體。網格變大時再到 Windows 使用者資料夾建立 `.wslconfig` 調整,現階段不用動。
+### 0.3 OpenFOAM 原生 Windows 安裝 `[x]`
+- 使用者電腦已預先安裝 OpenFOAM v2106(原生 Windows 版),路徑:`D:\01_EC_Fan\Open_foam\v2106`。
+- 啟動方式:在 `cmd.exe` 執行 `call D:\01_EC_Fan\Open_foam\v2106\setEnvVariables-v2106.bat` 載入環境變數,
+  之後即可在同一個 cmd session 使用 `blockMesh`、`simpleFoam` 等指令,如同一般 Windows 程式。
+- 完成標準:`simpleFoam -help` 能正常顯示說明文字並回報版本 `OpenFOAM-com (2106)`。✅ 已驗證。
 
-### 0.4 安裝 OpenFOAM `[ ]`
-- 為什麼:這是求解器本體。本專案使用 ESI 版(openfoam.com)。
-- 先加入官方套件庫,並查詢目前可安裝的版本名稱:
-  ```bash
-  curl https://dl.openfoam.com/add-debian-repo.sh | sudo bash
-  sudo apt-get update
-  apt-cache search openfoam | grep default
-  ```
-- 從查詢結果挑選最新版的 `openfoamXXXX-default` 套件安裝(XXXX 是版本號),例如:
-  ```bash
-  sudo apt-get install openfoamXXXX-default
-  ```
-- 完成標準:安裝過程沒有錯誤訊息。
-
-### 0.5 載入 OpenFOAM 環境 `[ ]`
-- 為什麼:OpenFOAM 的指令(simpleFoam 等)要先載入環境檔才找得到。
-- 執行(XXXX 換成實際版本號):
-  ```bash
-  source /usr/lib/openfoam/openfoamXXXX/etc/bashrc
-  ```
-  確認可用後,把同一行加到 `~/.bashrc` 最後,之後開啟終端機就會自動載入。
-- 完成標準:輸入 `simpleFoam -help` 會顯示說明文字。
-
-### 0.6 用內建範例驗證安裝 `[ ]`
+### 0.4 用內建範例驗證安裝 `[x]`
 - 為什麼:確認整條工具鏈能跑,把「安裝問題」和「之後風扇設定問題」分開。
-- 複製並執行 pitzDaily 範例(一個簡單的 simpleFoam 算例):
-  ```bash
-  mkdir -p ~/run && cd ~/run
-  cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily .
-  cd pitzDaily
-  blockMesh
-  simpleFoam | tee log.simpleFoam
+- 案例工作目錄:`D:\01_EC_Fan\Open_foam\run`(對應原規劃的 `~/run`)。
+- 複製並執行 pitzDaily 範例(OpenFOAM 內建的 simpleFoam 教學案例):
   ```
-  - `blockMesh`:產生網格。
-  - `simpleFoam`:求解。畫面會滾動出現殘差,最後看到 `End` 表示結束。
-- 完成標準:log 最後一行出現 `End`,且沒有 `FOAM FATAL ERROR`。
+  call D:\01_EC_Fan\Open_foam\v2106\setEnvVariables-v2106.bat
+  cd /d D:\01_EC_Fan\Open_foam\run\pitzDaily
+  blockMesh
+  simpleFoam
+  ```
+- 完成標準:`blockMesh` 與 `simpleFoam` 皆執行完畢並顯示 `End`,無 `FOAM FATAL ERROR`。✅ 已驗證(SIMPLE solution 已收斂)。
 
-### 0.7 安裝 ParaView `[ ]`
-- 為什麼:用來目視檢查網格與流場,是判斷模擬是否合理的重要工具。
+### 0.5 安裝 ParaView `[ ]`
+- 為什麼:用來目視檢查網格與流場,是判斷模擬是否合理的重要工具。此原生 Windows OpenFOAM 安裝包**不含** ParaView,需另外安裝。
 - 到官網 paraview.org 下載 Windows 版安裝。
-- 在 pitzDaily 資料夾建立空的 `pitzDaily.foam` 檔(`touch pitzDaily.foam`),用 ParaView 開啟,
-  Apply 後能看到顏色分布即可。WSL 的檔案可在 Windows 檔案總管網址列輸入 `\\wsl$` 存取。
+- 在 `D:\01_EC_Fan\Open_foam\run\pitzDaily` 資料夾建立空的 `pitzDaily.foam` 檔,用 ParaView 開啟,
+  Apply 後能看到顏色分布即可。
 - 完成標準:使用者能在 ParaView 看到 pitzDaily 的速度或壓力分布。
 
 **階段 0 結束時向使用者報告:** 規格、OpenFOAM 版本號、範例是否成功、ParaView 是否可看。
