@@ -1,0 +1,34 @@
+# ===== 機密與大型資料:絕對不可上傳 =====
+# 幾何檔
+*.stp
+*.step
+*.stl
+*.igs
+*.iges
+
+# 實驗數據
+*.csv
+*.xlsx
+*.xls
+data/
+experiment/
+
+# 本機設定(含檔案路徑、轉速等)
+config.local.yaml
+
+# OpenFOAM 算例結果與網格
+processor*/
+[1-9]*/
+0.[0-9]*/
+constant/polyMesh/
+constant/triSurface/
+postProcessing/
+log.*
+*.foam
+*.OpenFOAM
+
+# 其他
+__pycache__/
+*.pyc
+.venv/
+.vscode/

@@ -1,0 +1,17 @@
+# 範本:複製成 config.local.yaml 後填入真實值(config.local.yaml 不會上傳)
+# 以下皆為假值
+
+step_file: "C:/path/to/fan.stp"
+experiment_file: "C:/path/to/experiment_pq.csv"
+
+fan:
+  outer_diameter_mm: 0      # 風扇外徑
+  blade_count: 0            # 葉片數
+  rpm: 0                    # 轉速
+
+pressure_definition: "static"   # static 或 total,必須與實驗一致
+
+air:
+  density_kg_m3: 1.2
+
+flow_points_m3_h: []        # 要模擬的流量點
