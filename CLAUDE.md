@@ -11,14 +11,22 @@
 - 溝通風格:直接、務實、優先使用表格與結構化框架,不要堆砌免責聲明。
 
 ## 環境
-- 使用者電腦是 Windows,OpenFOAM 跑在 WSL2 的 Ubuntu 裡,後處理用 ParaView。
-- 在 VS Code 內開發,腳本使用 bash 與 Python。
+- 使用者電腦是 Windows(公司 IT 政策禁用虛擬化,WSL2 / Hyper-V / Docker Desktop 皆不可用)。
+- OpenFOAM 使用**原生 Windows 編譯版**(ESI OpenFOAM v2106,cross-compiled with MinGW,包在 MSYS2 環境裡),
+  已安裝於 `D:\01_EC_Fan\Open_foam\v2106`,執行時不需要任何虛擬化技術。
+- 每次執行 OpenFOAM 指令前,需先在 `cmd.exe` 載入環境變數:
+  ```
+  call D:\01_EC_Fan\Open_foam\v2106\setEnvVariables-v2106.bat
+  ```
+- 案例工作目錄(run 目錄)位於 `D:\01_EC_Fan\Open_foam\run`。
+- 後處理用 ParaView(需另外從 paraview.org 下載安裝,不隨此 OpenFOAM 安裝包附帶)。
+- 在 VS Code 內開發,腳本使用 PowerShell 與 Python(Windows 環境,非 bash)。
 
 ## 絕對規則(資料安全)
 1. **不可 git add 或 push 任何資料檔**:STEP/STL 幾何、實驗 P-Q 數據、網格、算例結果、log。`.gitignore` 已擋掉,但仍需人工確認。
 2. **回報方式為 A**:結果與數字只在 VS Code 對話內向使用者報告,**不要**把結果、誤差、摘要寫進 repo 推上去。
 3. 所有路徑、檔名、轉速、流量點等參數寫在 `config.local.yaml`(不上傳)。repo 內只放 `config.example.yaml` 範本,內容使用假值。
-4. 每次推送前執行 `git status`,確認沒有資料檔被追蹤。
+4. 每次推送前執行 `git status`(或本專案改用 GitHub API 直接建檔時,先列出即將寫入的檔案清單),確認沒有資料檔被寫入。
 
 ## 技術注意事項
 - simpleFoam 的壓力是 p/ρ(單位 m²/s²),算出壓差後**必須乘以空氣密度**(約 1.2 kg/m³)才是 Pa。
