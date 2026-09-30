@@ -1,4 +1,4 @@
-# TASKS.md:分階段任務
+﻿# TASKS.md:分階段任務
 
 狀態標記:`[ ]` 未做、`[x]` 完成。一次只做一個階段,完成後向使用者報告並等確認。
 
@@ -37,14 +37,13 @@
   ```
 - 完成標準:`blockMesh` 與 `simpleFoam` 皆執行完畢並顯示 `End`,無 `FOAM FATAL ERROR`。✅ 已驗證(SIMPLE solution 已收斂)。
 
-### 0.5 安裝 ParaView `[ ]`
-- 為什麼:用來目視檢查網格與流場,是判斷模擬是否合理的重要工具。此原生 Windows OpenFOAM 安裝包**不含** ParaView,需另外安裝。
-- 到官網 paraview.org 下載 Windows 版安裝。
-- 在 `D:\01_EC_Fan\Open_foam\run\pitzDaily` 資料夾建立空的 `pitzDaily.foam` 檔,用 ParaView 開啟,
-  Apply 後能看到顏色分布即可。
-- 完成標準:使用者能在 ParaView 看到 pitzDaily 的速度或壓力分布。
+### 0.5 後處理方案:改用 PyVista(取代 ParaView) `[x]`
+- 背景變更:公司政策規定軟體只能透過內部軟體商店(Software Center)安裝,ParaView 不在清單內,且無法自行下載安裝檔。
+- 改用 **PyVista**(Python 套件,底層也是 VTK,與 ParaView 同源),透過 `pip install pyvista` 安裝,不需要另外的安裝程式或管理員權限。
+- 讀取方式:在案例資料夾建立空的 `<case>.foam` 檔,用 `pyvista.POpenFOAMReader` 讀取,可離屏(off-screen)渲染輸出 PNG 截圖,或需要互動視窗時用 `plotter.show()`。
+- 完成標準:成功讀取 pitzDaily 範例的網格與 U/p/k/epsilon/nut 欄位,並離屏渲染出速度場截圖,畫面與預期流場一致。✅ 已驗證。
 
-**階段 0 結束時向使用者報告:** 規格、OpenFOAM 版本號、範例是否成功、ParaView 是否可看。
+**階段 0 結束時向使用者報告:** 規格、OpenFOAM 版本號、範例是否成功、後處理工具是否可看。
 
 ---
 
