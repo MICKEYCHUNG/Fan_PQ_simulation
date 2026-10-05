@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿# TASKS.md:分階段任務
+﻿﻿﻿﻿﻿﻿﻿﻿# TASKS.md:分階段任務
 
 狀態標記:`[ ]` 未做、`[x]` 完成。一次只做一個階段,完成後向使用者報告並等確認。
 
@@ -141,15 +141,15 @@
 ### 3.2 背景網格(blockMesh)與 snappyHexMesh 設定檔 `[x]`
 - 依 `MESH_RULES.md` 第 1、2、5 節產生設定檔。
 - **重要修正**:Fluid3(出口後段,5D~10D)要求純六面體結構網格,snappyHexMesh 無法保證此限制。改為該段**獨立建立圓柱 O-grid 結構網格**(中心方塊 + 4 片弧形外圍區塊,案例目錄 `fluid3_case`),完全不經過 snappyHexMesh。Fluid1+Fluid2+旋轉區(含風扇/ring 細節)仍用 blockMesh 背景 + snappyHexMesh(案例目錄 `fan_case`)。
-- 兩個案例最後需用 `mergeMeshes` + `stitchMesh` 拼接成一個網格(進行中)。
+- 兩個案例用 `mergeMeshes` 合併成一個 polyMesh。介面銜接原本計畫用 `stitchMesh`(把兩個 patch 縫成內部面),但 `stitchMesh` 的滑動介面演算法在「不規則 snappyHexMesh 網格」對「規則 O-grid 網格」的交界處丟出 fatal error(`Created illegal face`)。改用更穩健的標準做法:兩個交界 patch(`fluid2_outlet` / `fluid3_inlet`)設為 **`cyclicAMI`** 配對(非一致性介面,求解時用內插方式傳遞通量),不需要兩側網格拓撲完全一致。✅ 已完成,視覺確認兩個介面完全對齊同心同徑。
 
-### 3.3 中網格試跑與 `checkMesh` `[x]`(兩區塊分別驗證,待拼接後做最終整體驗證)
+### 3.3 中網格試跑與 `checkMesh` `[x]`
 - **Fluid3 O-grid**:`Mesh OK`,100% 六面體(22048/22048),non-orthogonality 最大 33°、skewness 最大 0.97,完全符合第 7 節標準。
 - **Fluid1+Fluid2+旋轉區**(snappyHexMesh):1,334,831 cells,MRF cellZone(`rotatingZone`,用 topoSet 建立,955,877 cells)已建立。checkMesh 僅 1 項未過:skewness 最大 5.94(標準 <4),**僅 2 個面**,位置在扇葉後緣尖端(該處幾何厚度本身趨近於零,標準差僅 0.16mm,配合規則要求的 level 5 面網格已達自動網格演算法極限)。已嘗試 3 組不同的 `nCellsBetweenLevels`/snap 參數(3/6/10),結果在 4.6~5.9 間震盪未能穩定壓低,判斷非網格引擎調校可解,改善需局部修改幾何(後緣微增厚),會改變外形尺寸。使用者確認:**接受為已知例外,繼續後續流程**,不修改幾何。
-- 整體(兩區塊拼接後)的最終 checkMesh 待 3.2 拼接完成後執行。
+- **整體合併後**(cyclicAMI 拼接):總計 1,356,879 cells,總體積 18.69 m³。checkMesh 確認 cyclicAMI 介面拓撲正確,除上述已知的 2 個 skewness 例外面外,其餘全部通過(非正交度最大 52.67°、長寬比、體積、邊界開放性皆 OK)。✅ 階段 3 中網格完成。
 
 ### 3.4 粗 / 細網格 `[ ]`
-- 依 `MESH_RULES.md` 第 6 節建立,供後續網格獨立性驗證。待中網格拼接完成並驗證後才開始。
+- 依 `MESH_RULES.md` 第 6 節建立,供後續網格獨立性驗證。
 
 ---
 
