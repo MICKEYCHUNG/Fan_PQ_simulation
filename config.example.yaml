@@ -15,3 +15,28 @@ air:
   density_kg_m3: 1.2
 
 flow_points_m3_h: []        # 要模擬的流量點
+
+# ===== 尺寸設定:定義與公式見 DIMENSIONS.md,量測值填在 config.local.yaml =====
+geometry:
+  axis: "z"                       # 旋轉軸 x / y / z
+  axis_origin_mm: [0, 0]          # 旋轉軸通過點的另兩軸座標
+  r_blade_mm: 0                   # 葉尖半徑
+  r_hub_mm: 0                     # 輪轂半徑
+  r_ring_mm: 0                    # wall ring 內壁半徑(最小值)
+  z_fan_min_mm: 0                 # 風扇軸向範圍
+  z_fan_max_mm: 0
+  z_ring_min_mm: 0                # wall ring 內壁軸向範圍
+  z_ring_max_mm: 0
+
+domain:
+  inlet_length_ratio: 2.5         # 進口段長度 / 風扇外徑
+  outlet_length_ratio: 5.0        # 出口段長度 / 風扇外徑
+
+mrf_zone:
+  delta_in_ratio: 0.05            # 入風側餘量 / 風扇外徑
+  delta_out_ratio: 0.0            # 出風側餘量 / 風扇外徑
+
+mesh:
+  gap_cells_min: 6                # 葉尖間隙徑向最少網格層數
+  yplus_target: [30, 100]         # 壁面函數 y+ 目標範圍
+  refinement_ratio: 1.414         # 三套網格的線性加密比
