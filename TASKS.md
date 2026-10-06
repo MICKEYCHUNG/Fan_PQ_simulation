@@ -164,7 +164,7 @@
 - 這個 OpenFOAM 版本(v2106)的 `simpleFoam` **不支援把 MRF 寫在 `fvOptions`**(型別 `MRFSource` 不存在,無獨立的 `MRFSimpleFoam` 執行檔)。改用傳統的 `constant/MRFProperties` 檔案(`cellZone rotatingZone`,`origin`/`axis`/`omega`),這是 `simpleFoam` 原生支援的機制。
 - 旋轉方向沿用階段 1.6 的幾何交叉驗證結論(+Y 軸右手定則正轉),與進出風方向無關,不受本階段調整影響。
 
-### 4.2 邊界條件與湍流模型 `[x]`
+### 4.2 邊界條件與湍流模型 `[x]`(⚠️ 已被 4.4 取代,僅保留紀錄)
 - 紊流模型:standard k-epsilon + 標準壁面函數(`kqRWallFunction`/`epsilonWallFunction`/`nutkWallFunction`),邊界層目前關閉(依 `MESH_RULES.md` 第4節預設),y+ 待邊界層開啟後再檢視。
 - `fanSurface` 用 `rotatingWallVelocity`(葉片隨旋轉區實際轉動);`ductEnvelope`/`ringSurface`/`fluid3_wall` 為 `noSlip` 固定壁面。
 
@@ -175,17 +175,38 @@
 - **✅ 結論確認:Fluid3 端(大管徑,5D)= inlet,Fluid1 端(小管徑,3D)= outlet。** 此結果已寫入 `fan_case` 的邊界條件(`0/U`、`0/p`、`0/k`、`0/epsilon`),後續所有流量點計算沿用此方向設定。
 - 完成標準:對調後重跑,風扇前後壓力呈現上升。✅ 已達成。
 
+### 4.4 邊界條件修訂:壓力驅動 + k-ω SST(2026-10-06 定案) `[ ]`(設定已定案,待本機實作)
+- 完整規則見 `BC_RULES.md`,實作時照該文件設定。
+- 修訂重點:
+  | 項目 | 新設定 |
+  |---|---|
+  | 驅動方式 | 給壓力算流量:inlet `totalPressure` p0 = 0,outlet `fixedValue` = P_set/ρ |
+  | 進口圓柱(Fluid3+Fluid2,5D) | 端面 = inlet,側面 = wall |
+  | 出口圓柱(Fluid1,3D) | 端面與側面皆為 free(outlet) |
+  | 湍流模型 | k-ω SST,壁面函數 `kqRWallFunction`/`omegaWallFunction`/`nutkWallFunction` |
+  | MRF | 1400 RPM,軸線 = 風扇中心線(+Y),沿用 4.1 |
+- 本機實作步驟:
+  1. 拆分 `ductEnvelope`,讓 Fluid1 側面成為獨立 patch 併入 outlet,重跑 `checkMesh` 確認
+  2. 更新 `0/U`、`0/p`、`0/k`、`0/nut`;刪除 `0/epsilon`,新增 `0/omega`
+  3. 湍流模型改為 `kOmegaSST`;`fvSchemes`、`fvSolution` 的 epsilon 項改為 omega
+  4. 加入 inlet 流量監控 function object
+  5. 用 P_set = 0 試跑,確認可計算且流向正確(由進口流入)
+- 待確認(見 `BC_RULES.md` 第 7 節):近壁處理(壁面函數 vs y+≈1)、入口湍流強度、失速區備案。
+- 完成標準:設定檔依 `BC_RULES.md` 完成,P_set = 0 試跑無 fatal error,流量為正。
+
 ---
 
-## 階段 5:單一流量點完整收斂試算(待展開)
+## 階段 5:單一壓力點完整收斂試算(待展開)
+
+> 10/06 起改為壓力驅動,以下原「流量點」待辦改以 P_set 進行。
 
 **目前狀態:** 階段 4.3 用的兩次測試(含方向確認那次)都只跑 300 次疊代、殘差約 1e-3,**未達 `fvSolution` 設定的 1e-4 收斂門檻**,且用的是任意設定的保守測試流量(非真實實驗流量點),僅供方向判斷使用,不是正式結果。
 
 **待辦:**
-1. 取得真實實驗流量點數值(`config.local.yaml`,不上傳),取代目前的測試流量。
-2. 用確認過的進出風方向(Fluid3=inlet、Fluid1=outlet)+ 真實流量點,重跑至真正收斂(殘差達 1e-4 門檻或更嚴格)。
-3. 收斂後才進入後處理:壓差計算(注意乘以密度,見 `CLAUDE.md` 技術注意事項)。
+1. 依實驗 P-Q 數據決定 P_set 掃描點(`config.local.yaml`,不上傳)。
+2. 用確認過的進出風方向(Fluid3=inlet、Fluid1=outlet)+ 設計點附近的 P_set,重跑至真正收斂(依 `BC_RULES.md` 第 6 節:殘差 1e-4,且 Q 與壓力波動 < 0.5%)。
+3. 收斂後才進入後處理:由 inlet 流量監控取得 Q(壓力單位換算見 `CLAUDE.md` 技術注意事項)。
 
 ## 後續階段(尚未展開)
-1. 多流量點掃描,畫 P-Q 曲線
+1. 多個 P_set 點掃描,畫 P-Q 曲線
 2. 與實驗比對、網格獨立性驗證、參數校準
