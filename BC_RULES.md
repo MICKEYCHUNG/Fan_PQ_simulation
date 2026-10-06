@@ -53,7 +53,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 
 | 邊界 | k | omega | nut |
 |---|---|---|---|
-| inlet | `turbulentIntensityKineticEnergyInlet`,強度 0.05(待確認) | `turbulentMixingLengthFrequencyInlet`,長度 ≈ 0.07 × 進口管徑 | `calculated` |
+| inlet | `turbulentIntensityKineticEnergyInlet`,強度 0.05 | `turbulentMixingLengthFrequencyInlet`,長度 ≈ 0.07 × 進口管徑 | `calculated` |
 | outlet | `inletOutlet` | `inletOutlet` | `calculated` |
 | 所有壁面 | `kqRWallFunction` | `omegaWallFunction` | `nutkWallFunction` |
 
@@ -86,7 +86,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 
 ### 5.1 失速區備案:改用固定流量法(10/06 定案)
 
-**觸發條件(何謂「無法收斂」):** 某個 P_set 點在疊代上限內,未達第 6 節任一收斂標準,或 Q 持續週期性震盪不衰減。疊代上限預設 3000 次(待確認,實際數值寫在 `config.local.yaml`)。
+**觸發條件(何謂「無法收斂」):** 某個 P_set 點在疊代上限內,未達第 6 節任一收斂標準,或 Q 持續週期性震盪不衰減。疊代上限 3000 次(10/06 定案)。
 
 | 邊界 | U | p |
 |---|---|---|
@@ -115,6 +115,6 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 | # | 問題 | 狀態 |
 |---|---|---|
 | 1 | 葉片近壁處理 | ✅ 10/06 定案:開啟葉片邊界層 5 層(見 `MESH_RULES.md` 第 4 節),壁面函數維持 `omegaWallFunction` / `nutkWallFunction`;收斂後檢查 y+ |
-| 2 | 入口湍流強度 5% 是否接受 | ⏳ 待確認 |
+| 2 | 入口湍流強度 | ✅ 10/06 定案:5% |
 | 3 | 失速區備案 | ✅ 10/06 定案:無法收斂時改用固定流量法驗證(見第 5.1 節) |
-| 4 | 失速判定的疊代上限(預設 3000) | ⏳ 待確認 |
+| 4 | 失速判定的疊代上限 | ✅ 10/06 定案:3000 次 |
