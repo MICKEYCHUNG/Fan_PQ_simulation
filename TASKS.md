@@ -186,12 +186,14 @@
   | 湍流模型 | k-ω SST,壁面函數 `kqRWallFunction`/`omegaWallFunction`/`nutkWallFunction` |
   | MRF | 1400 RPM,軸線 = 風扇中心線(+Y),沿用 4.1 |
 - 本機實作步驟:
+  0. **重做三套網格(粗 / 中 / 細),開啟葉片邊界層 5 層**(10/06 決定,依 `MESH_RULES.md` 第 4 節),逐套 `checkMesh` 並檢查邊界層覆蓋率
   1. 拆分 `ductEnvelope`,讓 Fluid1 側面成為獨立 patch 併入 outlet,重跑 `checkMesh` 確認
   2. 更新 `0/U`、`0/p`、`0/k`、`0/nut`;刪除 `0/epsilon`,新增 `0/omega`
   3. 湍流模型改為 `kOmegaSST`;`fvSchemes`、`fvSolution` 的 epsilon 項改為 omega
   4. 加入 inlet 流量監控 function object
   5. 用 P_set = 0 試跑,確認可計算且流向正確(由進口流入)
-- 待確認(見 `BC_RULES.md` 第 7 節):近壁處理(壁面函數 vs y+≈1)、入口湍流強度、失速區備案。
+- 10/06 追加定案:葉片邊界層 5 層;失速區無法收斂時改用固定流量法驗證(`BC_RULES.md` 5.1)。
+- 待確認(見 `BC_RULES.md` 第 7 節):入口湍流強度、失速判定疊代上限。
 - 完成標準:設定檔依 `BC_RULES.md` 完成,P_set = 0 試跑無 fatal error,流量為正。
 
 ---
@@ -201,6 +203,16 @@
 > 10/06 起改為壓力驅動,以下原「流量點」待辦改以 P_set 進行。
 
 **目前狀態:** 階段 4.3 用的兩次測試(含方向確認那次)都只跑 300 次疊代、殘差約 1e-3,**未達 `fvSolution` 設定的 1e-4 收斂門檻**,且用的是任意設定的保守測試流量(非真實實驗流量點),僅供方向判斷使用,不是正式結果。
+
+### 5.0 求解器與平行運算設定 `[ ]`(設定已定案,待本機實作)
+- 完整規則見 `SOLVER_RULES.md`。
+  | 項目 | 設定 |
+  |---|---|
+  | 核心數 | 查詢 CPU 核心數,使用 N = 總核心數 − 1 |
+  | 平行運算 | `decomposePar`(scotch)→ `mpiexec -n N simpleFoam -parallel` → `reconstructPar -latestTime` |
+  | Warm-up | 先跑 P_set = 0(無背壓)至收斂 |
+  | 堆疊 | 後續 P_set 由低往高,每點以前一點收斂流場為初始值 |
+- 完成標準:MS-MPI 可用;平行與單核相同疊代次數的 Q 差異 < 0.1%;P_set = 0 收斂。
 
 **待辦:**
 1. 依實驗 P-Q 數據決定 P_set 掃描點(`config.local.yaml`,不上傳)。
