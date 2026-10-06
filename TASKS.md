@@ -212,7 +212,8 @@
   | 平行運算 | `decomposePar`(scotch)→ `mpiexec -n N simpleFoam -parallel` → `reconstructPar -latestTime` |
   | Warm-up | 先跑 P_set = 0(無背壓)至收斂 |
   | 堆疊 | 後續 P_set 由低往高,每點以前一點收斂流場為初始值 |
-- 完成標準:MS-MPI 可用;平行與單核相同疊代次數的 Q 差異 < 0.1%;P_set = 0 收斂。
+- MS-MPI:✅ 已確認可用(10/06)。
+- 完成標準:平行與單核相同疊代次數的 Q 差異 < 0.1%;P_set = 0 收斂。
 
 **待辦:**
 1. 依實驗 P-Q 數據決定 P_set 掃描點(`config.local.yaml`,不上傳)。

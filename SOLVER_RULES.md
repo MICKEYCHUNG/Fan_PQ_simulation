@@ -18,7 +18,7 @@
 
 | 步驟 | 指令 / 設定 | 說明 |
 |---|---|---|
-| 0. 確認 MPI | `mpiexec -help` | Windows 版需要 MS-MPI。若指令不存在,要透過 Software Center 申請安裝,這是平行運算的前提 |
+| 0. 確認 MPI | `mpiexec -help` | ✅ 10/06 使用者確認 MS-MPI 可用 |
 | 1. 切分設定 | `system/decomposeParDict`:`numberOfSubdomains N;`、`method scotch;` | scotch 自動切分,讓每塊格數平均、交界面最少,不需手動指定方向 |
 | 2. 切分網格 | `decomposePar` | 產生 `processor0` ~ `processor(N-1)` 資料夾 |
 | 3. 平行求解 | `mpiexec -n N simpleFoam -parallel > log.simpleFoam 2>&1` | `-parallel` 必加,否則 N 個程序會各自重複算整個網格 |
@@ -68,4 +68,4 @@
 | # | 問題 | 預設 |
 |---|---|---|
 | 1 | 總核心數取實體核心或邏輯核心 | 實體核心 |
-| 2 | 電腦是否已有 MS-MPI | 本機執行 `mpiexec -help` 確認 |
+| 2 | 電腦是否已有 MS-MPI | ✅ 已確認可用(10/06) |
