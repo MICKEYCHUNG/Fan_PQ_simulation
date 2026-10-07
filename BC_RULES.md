@@ -44,6 +44,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 |---|---|---|---|
 | inlet(進口端面) | `pressureInletVelocity` | `totalPressure`,p0 = 0 | 給壓力,速度由壓差決定 |
 | 進口圓柱側面 / 中段 / ring | `noSlip` | `zeroGradient` | 靜止壁面 |
+| 安裝隔板 `sealPlate` / `sealPlate_slave`(兩面,10/06 追加) | `noSlip` | `zeroGradient` | 封住 ring 外側旁通道,見 `MESH_RULES.md` 1.1 節 |
 | outlet(出口端面 + 側面) | `inletOutlet`,inletValue = (0 0 0) | `fixedValue`,值 = P_set / ρ | 允許局部回流而不發散 |
 | 葉片 `fanSurface` | `rotatingWallVelocity`(沿用現有)或 `noSlip` | `zeroGradient` | 位於 MRF 區內,兩者等效 |
 
@@ -55,7 +56,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 |---|---|---|---|
 | inlet | `turbulentIntensityKineticEnergyInlet`,強度 0.05 | `turbulentMixingLengthFrequencyInlet`,長度 ≈ 0.07 × 進口管徑 | `calculated` |
 | outlet | `inletOutlet` | `inletOutlet` | `calculated` |
-| 所有壁面 | `kqRWallFunction` | `omegaWallFunction` | `nutkWallFunction` |
+| 所有壁面(含 `sealPlate` 兩面) | `kqRWallFunction` | `omegaWallFunction` | `nutkWallFunction` |
 
 入口用「強度 + 長度尺度」而非固定數值,因為入口速度是計算結果,這兩種邊界條件會隨流量自動調整。
 
@@ -109,6 +110,13 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 | 入口 / 出口壓力 | 最後一段疊代波動 < 0.5% |
 
 只看殘差不夠,三者都達標才算收斂。
+
+**物理合理性(10/06 追加):** 收斂之外,P_set 堆疊時每一點還要檢查:
+- 流量 Q 隨 P_set 升高而遞減;
+- 低背壓點(接近 0 Pa)的 Q 應與 P_set = 0 接近;
+- 不得出現整體倒流(進口端面變成流出)。
+
+任一項不符就停止掃描、先找原因,不要往高壓力繼續堆疊。這類異常通常是計算域或邊界問題(例如 ring 外側旁通道,見 `MESH_RULES.md` 1.1),不是收斂監控能解決的。
 
 ## 7. 確認紀錄
 

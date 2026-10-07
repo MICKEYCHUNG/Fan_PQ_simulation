@@ -26,6 +26,19 @@
 Fluid1 的 2D × 3D 與 Fluid2 + Fluid3 的 10D × 5D,與 TASKS.md 2.1 的 Inlet / Outlet 尺寸一致。
 Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是粗的結構網格),不是物理邊界。
 
+### 1.1 安裝隔板(sealPlate,2026-10-06 追加,必做)
+
+**名詞:** 隔板 = 實驗時把 wall ring 固定住的安裝板。空氣只能從風扇中間通過,不能從 ring 外面繞過去。
+
+| 項目 | 規則 |
+|---|---|
+| 為什麼 | 計算域若只放一個懸空的 ring,ring 外徑與管壁之間會留下一圈「旁通道」。有背壓時,風扇吹出的空氣會從這裡繞回進口側,淨流量被吃掉,高背壓時甚至整體倒流。0 Pa 時沒有壓差,所以這個錯誤在 warm-up 點看不出來 |
+| 範圍 | 環形牆,從 ring 外緣封到 Fluid1 管壁;Fluid1 / Fluid2 的管徑台階放在同一平面,兩者合起來把整個截面封住,只留 ring 內部通道 |
+| 位置 | 放在 ring 安裝唇邊(法蘭殘段)的高度中段。**不可與 ring 的任何端面共平面**(共平面會讓 snappyHexMesh 貼合失敗) |
+| 內緣 | 內緣半徑要埋進 ring 實體內(介於 ring 該高度的內外徑之間),確保與 ring 之間沒有縫隙 |
+| 邊界類型 | 兩面都是 wall(見 `BC_RULES.md` 第 3 節) |
+| 驗證 | 網格完成後確認 ring 外側沒有連通進口側與出口側的流體網格;P_set 掃描時流量隨背壓單調遞減,且不得出現倒流 |
+
 ## 2. 網格尺寸規則
 
 規則內的 mm 數值是外徑 130 mm、厚 26 mm 的參考風扇。實際風扇把「參考值」欄乘以 `s` 得到實際值。
@@ -93,6 +106,8 @@ Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是
 | Refine1 / Refine2 | `refinementRegions` 中用同軸圓柱,`mode inside`,尺寸見 2.1 |
 | Rotate_Region | 同時是 MRF 的 cellZone,內部加密到 level 4 |
 | Fluid3 | 不設任何加密,保持背景六面體網格 |
+| 隔板(1.1 節) | 獨立 STL(零厚度環形面),`refinementSurfaces` 設 `faceZone sealPlate; faceType baffle; patchInfo { type wall; }`,產生兩面都是 wall 的零厚度牆(patch 名稱 `sealPlate` / `sealPlate_slave`);網格尺寸沿用所在區域,不另外加密。外殼 STL 的管徑台階移到同一平面 |
+| 出口側面 free 的選取 | `topoSet` 依軸向座標選 Fluid1 側面時,要再用 `normalToFace`(法向 ±Y)扣除台階與隔板等軸向面,這些面必須維持 wall |
 | 邊界層 | `addLayersControls`:`nSurfaceLayers 5`、`firstLayerThickness` 為 0.05 × s mm(換成公尺)、`expansionRatio 1.2`、`relativeSizes false`,只對葉片表面 |
 
 ## 6. 三套網格(網格獨立性驗證用)
@@ -120,3 +135,4 @@ Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是
 4. 基準面定義為 wall ring 進口側端面。
 5. 粗 / 細網格使用 1.3 倍比例。
 6. 葉片邊界層開啟 5 層(2026-10-06 追加)。
+7. ring 外緣與管壁之間加安裝隔板,兩面皆為 wall(2026-10-06 追加,見 1.1 節)。
