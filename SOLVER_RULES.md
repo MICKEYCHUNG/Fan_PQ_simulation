@@ -28,7 +28,7 @@
 
 | 項目 | 規則 |
 |---|---|
-| cyclicAMI 介面 | scotch 可能把 AMI 兩側切到不同核心,v2106 可正常處理;若出現 AMI 相關錯誤,在 `decomposeParDict` 加 `preservePatches (fluid2_outlet fluid3_inlet);` |
+| 網格介面 | 10/07 起全計算域為單一 snappyHexMesh 網格,沒有 cyclicAMI 介面(`MESH_RULES.md` 1.0),`decomposeParDict` 不需要 `preservePatches` |
 | MRF | 平行運算不需額外設定,cellZone 會隨網格自動切分 |
 | 驗證平行正確性 | 第一次平行運算時,與單核跑相同疊代次數的結果比對,Q 差異應 < 0.1% |
 | 每格數建議 | 每核心至少約 5 萬格才有效率;中網格約 136 萬格,N 在 27 以下都在合理範圍 |

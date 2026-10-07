@@ -20,11 +20,22 @@
 |---|---|---|---|
 | Fluid1(進口段) | 進口側 0 ~ 2D | 3D | 非結構網格,基準尺寸 20 mm × s |
 | Fluid2(出口前段) | 出口側 0 ~ 5D | 5D | 非結構網格,基準尺寸 20 mm × s |
-| Fluid3(出口後段) | 出口側 5D ~ 10D | 5D | 純六面體結構網格,尺寸 20 mm × s,不允許出現四面體或多面體 |
+| Fluid3(出口後段) | 出口側 5D ~ 10D | 5D | 非結構網格,基準尺寸 20 mm × s,不加密 |
 | Rotate_Region(MRF 旋轉區) | 依 TASKS.md 2.1 | 依 TASKS.md 2.1 | 全區尺寸 1 mm × s |
 
 Fluid1 的 2D × 3D 與 Fluid2 + Fluid3 的 10D × 5D,與 TASKS.md 2.1 的 Inlet / Outlet 尺寸一致。
-Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是粗的結構網格),不是物理邊界。
+Fluid2 與 Fluid3 的分界只決定加密範圍(前段落在加密區內,後段不加密),不是物理邊界,也不是網格分界。
+
+### 1.0 單一網格生成規範(2026-10-07 定案,取代舊的 Fluid3 結構網格規定)
+
+| 項目 | 規則 |
+|---|---|
+| 生成方式 | **整個計算域(Fluid1 + Fluid2 + Fluid3 + 旋轉區)一律用同一套 blockMesh 背景 + snappyHexMesh 一次產生**,粗 / 中 / 細三套網格都相同 |
+| 外殼幾何 | 單一封閉外殼 STL:Fluid1(3D)到隔板平面的台階,接 5D 圓柱一路延伸到 Fluid3 末端(出口側 10D) |
+| 不再使用 | 獨立的 Fluid3 O-grid 結構網格、`mergeMeshes`、`stitchMesh`、`cyclicAMI` 介面 |
+| 為什麼 | 兩套網格用 AMI 接合時,介面兩側邊界對不齊(權重偏低),流量通過介面會漏失,進口量到的流量與出風口量到的不一致,評斷用的出風口流量因此失真。單一網格沒有介面,質量守恆 |
+| 代價 | snappyHexMesh 在管壁貼合處會產生少量非六面體(多面體)單元,不再保證 Fluid3 全為六面體;Fluid3 遠離風扇、只是讓尾流發展,影響小 |
+| 端面 patch | Fluid3 末端端面用 `topoSet`(依軸向座標 `boxToFace`)+ `createPatch` 從外殼 patch 拆出 |
 
 ### 1.1 安裝隔板(sealPlate,2026-10-06 追加,必做)
 
@@ -47,7 +58,7 @@ Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是
 |---|---|---|---|---|
 | 1 | Fluid1、Fluid2 | 體網格尺寸 | 20 mm | 20 × s mm |
 | 2 | Rotate_Region | 體網格尺寸 | 1 mm | 1 × s mm |
-| 3 | Fluid3 | 六面體結構網格 | 20 mm | 20 × s mm |
+| 3 | Fluid3 | 體網格尺寸(不加密,見 1.0 節) | 20 mm | 20 × s mm |
 | 4 | Refine1 加密區(建議必做) | 體網格尺寸 | 8 mm | 8 × s mm |
 | 5 | Refine2 加密區(選用) | 體網格尺寸 | 4 mm | 4 × s mm |
 | 6 | wall ring 表面(Frame) | 面網格尺寸 | 1 mm | 1 × s mm |
@@ -105,7 +116,7 @@ Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是
 | 加密級數 | Refine1 = level 1(8 mm)、Refine2 = level 2(4 mm)、Rotate_Region 與 wall ring 表面 = level 4(1 mm)、葉片表面 = level 5(0.5 mm),以上皆為參考風扇值,實際風扇同樣依 `s` 縮放背景邊長即可 |
 | Refine1 / Refine2 | `refinementRegions` 中用同軸圓柱,`mode inside`,尺寸見 2.1 |
 | Rotate_Region | 同時是 MRF 的 cellZone,內部加密到 level 4 |
-| Fluid3 | 不設任何加密,保持背景六面體網格 |
+| Fluid3 | 與其他分區同一套 snappyHexMesh,不設任何加密(背景網格 level 0);背景 blockMesh 沿軸向延伸涵蓋到 Fluid3 末端 |
 | 隔板(1.1 節) | 獨立 STL(零厚度環形面),`refinementSurfaces` 設 `faceZone sealPlate; faceType baffle; patchInfo { type wall; }`,產生兩面都是 wall 的零厚度牆(patch 名稱 `sealPlate` / `sealPlate_slave`);網格尺寸沿用所在區域,不另外加密。外殼 STL 的管徑台階移到同一平面 |
 | 出口側面 free 的選取 | `topoSet` 依軸向座標選 Fluid1 側面時,要再用 `normalToFace`(法向 ±Y)扣除台階與隔板等軸向面,這些面必須維持 wall |
 | 邊界層 | `addLayersControls`:`nSurfaceLayers 5`、`firstLayerThickness` 為 0.05 × s mm(換成公尺)、`expansionRatio 1.2`、`relativeSizes false`,只對葉片表面 |
@@ -121,7 +132,7 @@ Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是
 | `checkMesh` | 顯示 `Mesh OK`,沒有 failed checks |
 | 最大非正交度(non-orthogonality) | 小於 70° |
 | 最大偏斜度(skewness) | 小於 4 |
-| Fluid3 | 全為六面體 |
+| 介面 | 計算域內沒有 `cyclicAMI` 等網格介面(1.0 節) |
 | 葉片表面單元尺寸 | 與第 2 節編號 7 一致 |
 | 單元總數 | 記錄在對話內(不寫入 repo),三套網格皆需記錄 |
 
@@ -136,3 +147,4 @@ Fluid2 與 Fluid3 的分界只決定網格類型(前段可加密,後段必須是
 5. 粗 / 細網格使用 1.3 倍比例。
 6. 葉片邊界層開啟 5 層(2026-10-06 追加)。
 7. ring 外緣與管壁之間加安裝隔板,兩面皆為 wall(2026-10-06 追加,見 1.1 節)。
+8. 全計算域使用同一種網格生成規範(blockMesh + snappyHexMesh 一次產生),取消 Fluid3 結構網格與 AMI 介面(2026-10-07 追加,見 1.0 節)。
