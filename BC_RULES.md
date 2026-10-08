@@ -9,8 +9,8 @@
 |---|---|---|---|
 | 湍流模型 | standard k-epsilon | **k-ω SST** | 對葉片表面逆壓梯度、分離流的預測較好 |
 | 驅動方式 | 給流量 Q,算壓力 | **給壓力 P_set,算流量 Q** | 使用者決定 |
-| 出口段側面 | 固定壁面(noSlip) | **free(壓力開放邊界)** | 使用者決定 |
-| 進出風方向 | Fluid3 = inlet、Fluid1 = outlet | **不變** | 沿用 TASKS.md 4.3 經驗驗證結論 |
+| 出口段側面 | 固定壁面(noSlip) | ~~free~~ → **wall**(10/08) | 方向翻轉後使用者決定所有側面維持 wall |
+| 進出風方向 | Fluid3 = inlet、Fluid1 = outlet | **Fluid1 = inlet、Fluid3 = outlet;MRF omega 為負**(10/08) | TASKS.md 5.4 方向判斷:第 1 層幾何三項一致 + 第 3 層計算支持;4.3 的結論作廢 |
 
 ## 1. 流程中的位置
 
@@ -24,15 +24,15 @@
 
 ## 2. 邊界分區
 
-計算域方向沿用 TASKS.md 4.3:大管徑端為進口、小管徑端為出口。
+計算域方向依 TASKS.md 5.4(10/08 定案,取代 4.3):**小管徑端(Fluid1,前緣與喇叭口所在的 −Y 側)為進口,大管徑端(Fluid3 末端)為出口**,回到原始 `MESH_RULES.md` 的設計。
 
 | 區域 | 對應網格分區 | 端面 | 側面(圓柱面) |
 |---|---|---|---|
-| 進口圓柱 | Fluid3 + Fluid2(5D 管徑) | **inlet** | **wall** |
-| 中段(對齊 ring 外徑) | — | — | wall(不變) |
-| 出口圓柱 | Fluid1(3D 管徑) | **free** | **free** |
+| 進口圓柱 | Fluid1(3D 管徑) | **inlet** | **wall** |
+| 管徑台階 / 安裝隔板 | — | — | wall |
+| 出口圓柱 | Fluid2 + Fluid3(5D 管徑) | **outlet**(Fluid3 末端端面) | **wall** |
 
-**實作注意:** 目前 Fluid1 與 Fluid2 的側面可能同屬 `ductEnvelope` 一個 patch。出口圓柱側面要改成 free,需先在本機把該 patch 拆開(例如用 `topoSet` + `createPatch` 依軸向座標切分),Fluid2 側面維持 wall、Fluid1 側面改為 outlet 群組。拆分後要重跑 `checkMesh` 確認 patch 名稱與面數。
+**實作注意:** Fluid1 側面的 patch(`outletSideFree`,名稱沿用舊稱)型別要改為 `wall`;Fluid3 末端端面 patch 名稱為 `fluid3_outlet`,Fluid1 端面為 `inlet`(名稱與角色一致)。
 
 ## 3. 各場量設定
 
@@ -42,10 +42,10 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 
 | 邊界 | U | p | 理由 |
 |---|---|---|---|
-| inlet(進口端面) | `pressureInletVelocity` | `totalPressure`,p0 = 0 | 給壓力,速度由壓差決定 |
-| 進口圓柱側面 / 中段 / ring | `noSlip` | `zeroGradient` | 靜止壁面 |
+| inlet(Fluid1 端面 `inlet`) | `pressureInletVelocity` | `totalPressure`,p0 = 0 | 給壓力,速度由壓差決定 |
+| 所有側面(Fluid1 側面、Fluid2/3 側面)、台階、ring | `noSlip` | `zeroGradient` | 靜止壁面 |
 | 安裝隔板 `sealPlate` / `sealPlate_slave`(兩面,10/06 追加) | `noSlip` | `zeroGradient` | 封住 ring 外側旁通道,見 `MESH_RULES.md` 1.1 節 |
-| outlet(出口端面 + 側面) | `inletOutlet`,inletValue = (0 0 0) | `fixedValue`,值 = P_set / ρ | 允許局部回流而不發散 |
+| outlet(Fluid3 末端端面 `fluid3_outlet`) | `inletOutlet`,inletValue = (0 0 0) | `fixedValue`,值 = P_set / ρ | 允許局部回流而不發散 |
 | 葉片 `fanSurface` | `rotatingWallVelocity`(沿用現有)或 `noSlip` | `zeroGradient` | 位於 MRF 區內,兩者等效 |
 
 **靜壓定義:** 入口總壓 0、出口靜壓 P_set,等同標準「風扇靜壓 = 出口靜壓 − 入口總壓」,可直接與實驗比對(前提:實驗的壓力定義也是靜壓,見 `config.local.yaml` 的 `pressure_definition`)。
@@ -54,7 +54,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 
 | 邊界 | k | omega | nut |
 |---|---|---|---|
-| inlet | `turbulentIntensityKineticEnergyInlet`,強度 0.05 | `turbulentMixingLengthFrequencyInlet`,長度 ≈ 0.07 × 進口管徑 | `calculated` |
+| inlet | `turbulentIntensityKineticEnergyInlet`,強度 0.05 | `turbulentMixingLengthFrequencyInlet`,長度 ≈ 0.07 × 進口管徑(Fluid1,3D) | `calculated` |
 | outlet | `inletOutlet` | `inletOutlet` | `calculated` |
 | 所有壁面(含 `sealPlate` 兩面) | `kqRWallFunction` | `omegaWallFunction` | `nutkWallFunction` |
 
@@ -72,7 +72,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 |---|---|---|
 | cellZone | `rotatingZone` | 沿用階段 3 已建立的區域 |
 | origin / axis | 風扇轉軸中心線(+Y 軸) | 沿用 TASKS.md 4.1 |
-| omega | 1400 RPM = 146.607657 rad/s | 正負號沿用 TASKS.md 4.1(+Y 右手定則正轉) |
+| omega | 1400 RPM,**−146.607657 rad/s**(10/08) | 負號 = 繞 +Y 軸右手定則反轉,依 TASKS.md 5.4 方向判斷(前緣領先方向);`fanSurface` 的 `rotatingWallVelocity` omega 必須同號。舊的正號(TASKS 1.6 / 4.1)作廢 |
 | nonRotatingPatches | MRF 區內若有靜止壁面則列入 | 避免靜止零件被當成轉動 |
 
 ## 5. P_set 掃描邏輯
@@ -92,7 +92,7 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 | 邊界 | U | p |
 |---|---|---|
 | inlet | `flowRateInletVelocity`,`volumetricFlowRate` = Q_set | `zeroGradient` |
-| outlet(端面 + 側面) | `inletOutlet` | `fixedValue` 0 |
+| outlet(Fluid3 末端端面) | `inletOutlet` | `fixedValue` 0 |
 | 其他壁面、k、omega、MRF | 與第 3、4 節相同 | 與第 3、4 節相同 |
 
 | 項目 | 規則 |
@@ -126,3 +126,5 @@ simpleFoam 的 p 是 kinematic 壓力 p/ρ(m²/s²),P_set 以 Pa 給定時要先
 | 2 | 入口湍流強度 | ✅ 10/06 定案:5% |
 | 3 | 失速區備案 | ✅ 10/06 定案:無法收斂時改用固定流量法驗證(見第 5.1 節) |
 | 4 | 失速判定的疊代上限 | ✅ 10/06 定案:3000 次 |
+| 5 | 進出風方向與轉向 | ✅ 10/08 定案:Fluid1 進口、Fluid3 出口、omega 為負(TASKS.md 5.4 設定 B) |
+| 6 | 側面邊界 | ✅ 10/08 定案:所有側面維持 wall |
