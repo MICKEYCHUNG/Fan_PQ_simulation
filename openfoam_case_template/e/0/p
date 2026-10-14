@@ -1,0 +1,74 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  0/p - 範本（假值），壓力驅動法，見 BC_RULES.md 3.1
+
+  【這個檔案裡哪些數字是假的】
+  simpleFoam 的 p 是 kinematic 壓力 p/rho（單位 m^2/s^2），P_set 用 Pa
+  給定時要先除以空氣密度 rho（約 1.2 kg/m^3）。
+  outlet 的 value = P_set / rho，這裡假設 P_set = 50 Pa 當範例：
+      50 / 1.2 = 41.666667
+  真實的 P_set 掃描點來自你的實驗 P-Q 數據（存在本機 config.local.yaml，
+  不上傳），每一個掃描點都要照這個公式換算、更新這個值再重算一次。
+
+  【用 foamDictionary 更新下一個掃描點，不用手動編輯檔案】
+  依 SOLVER_RULES.md 第 3 節，每個掃描點之間用上一點的收斂流場當初始值，
+  只改 outlet 的 p 值：
+      foamDictionary -entry boundaryField.fluid3_outlet.value \
+          -set "uniform <P_set/rho>" <上一點收斂的時間步>/p
+
+  【失速區備案：改用固定流量法（BC_RULES.md 5.1）】
+  如果某個 P_set 點疊代到上限仍不收斂，或流量持續週期性震盪不衰減，
+  改用固定流量驅動，這個檔案的兩個邊界要整組換成：
+      inlet          { type zeroGradient; }
+      fluid3_outlet  { type fixedValue; value uniform 0; }
+  同時 0/U 的 inlet 也要換成 flowRateInletVelocity（volumetricFlowRate
+  給定一個遞減的 Q_set，見該檔案範本），兩個邊界要「一起換」，不能只改一邊，
+  否則變成不自洽的混合狀態（本專案實際犯過這個錯誤，詳見開發紀錄）。
+  壓力改用「出口靜壓(0) − 入口面積平均總壓」事後算出來，而不是直接讀邊界值。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      p;
+}
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    inlet
+    {
+        type            totalPressure;
+        p0              uniform 0;
+        value           uniform 0;
+    }
+    fluid3_outlet
+    {
+        // 假值：P_set = 50 Pa 時， 50 / 1.2 = 41.666667
+        type            fixedValue;
+        value           uniform 41.666667;
+    }
+    envelope
+    {
+        type            zeroGradient;
+    }
+    ringSurface
+    {
+        type            zeroGradient;
+    }
+    sealPlate
+    {
+        type            zeroGradient;
+    }
+    sealPlate_slave
+    {
+        type            zeroGradient;
+    }
+    fanSurface
+    {
+        type            zeroGradient;
+    }
+}
