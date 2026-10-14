@@ -1,0 +1,31 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  createPatchDict - 把 topoSet 選出的 faceSet 重新分類成正式 patch
+  從單一的 envelope patch 拆出 inlet(Fluid1 端)與 fluid3_outlet(Fluid3 端)，
+  其餘外殼面維持 wall（見 BC_RULES.md 第 2 節）。這個檔案不含任何真實數值，
+  直接沿用即可。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      createPatchDict;
+}
+
+pointSync false;
+
+patches
+(
+    {
+        name inlet;
+        patchInfo { type patch; }
+        constructFrom set;
+        set inletFaces;
+    }
+    {
+        name fluid3_outlet;
+        patchInfo { type patch; }
+        constructFrom set;
+        set outletFaces;
+    }
+);
