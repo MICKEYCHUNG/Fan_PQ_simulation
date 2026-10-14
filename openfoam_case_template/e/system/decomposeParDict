@@ -1,0 +1,19 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  decomposeParDict - 範本
+  numberOfSubdomains = 你的電腦「實體核心數 − 1」，見 SOLVER_RULES.md 第 1 節。
+  這是機器規格相關的數字，不是幾何/實驗數據，但每台電腦不一樣，下面用 7
+  （8 核心機器的範例）示範，實際請用
+      Get-CimInstance Win32_Processor | Select-Object NumberOfCores
+  查詢你自己的核心數再減 1。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      decomposeParDict;
+}
+
+numberOfSubdomains 7;
+
+method          scotch;
