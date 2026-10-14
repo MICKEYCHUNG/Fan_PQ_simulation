@@ -1,0 +1,15 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  transportProperties - 空氣的運動黏滯係數 nu，不含真實幾何/實驗數值。
+  nu = 1.5e-5 m^2/s 是空氣在常溫常壓下的典型值，可直接沿用。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      transportProperties;
+}
+
+transportModel  Newtonian;
+
+nu              [0 2 -1 0 0 0 0] 1.5e-05;
