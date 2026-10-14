@@ -1,0 +1,72 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  controlDict - 範本（假值）
+  不含真實幾何/壓力數值，但 startTime/endTime 示範用的是「某一個 P_set
+  掃描點」的樣子（本專案每個壓力點用 1500 次疊代當預算，從上一點收斂的
+  時間步接著算，見 SOLVER_RULES.md 第 3 節的堆疊流程）。真實掃描時這兩個
+  數字每個點都不一樣，不是固定值。
+
+  functions 區塊的 flowRateInlet / flowRateOutlet 用來即時監控進出口流量，
+  是 BC_RULES.md 第 6 節「流量波動 < 0.5%」判斷收斂的依據，也是失速區
+  判斷「是否持續震盪」的資料來源。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     simpleFoam;
+
+startFrom       startTime;
+startTime       0;      // 每個 P_set 點接續上一點的收斂時間步，見 SOLVER_RULES.md 3
+
+stopAt          endTime;
+endTime         1500;   // 每點的疊代預算，依收斂難易調整
+
+deltaT          1;
+
+writeControl    timeStep;
+writeInterval   100;
+
+purgeWrite      2;
+
+writeFormat     ascii;
+writePrecision  7;
+writeCompression off;
+
+timeFormat      general;
+timePrecision   6;
+
+runTimeModifiable true;
+
+functions
+{
+    flowRateInlet
+    {
+        type            surfaceFieldValue;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    timeStep;
+        writeInterval   1;
+        log             true;
+        writeFields     false;
+        regionType      patch;
+        name            inlet;
+        operation       sum;
+        fields          (phi);
+    }
+    flowRateOutlet
+    {
+        type            surfaceFieldValue;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    timeStep;
+        writeInterval   1;
+        log             true;
+        writeFields     false;
+        regionType      patch;
+        name            fluid3_outlet;
+        operation       sum;
+        fields          (phi);
+    }
+}
