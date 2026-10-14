@@ -1,0 +1,57 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  0/k - 入口湍流強度 5%，見 BC_RULES.md 3.2 / 7。
+  強度 0.05 是設計選擇（不是幾何/實驗量測值），直接沿用即可。
+  內部場 0.1 是一個合理的起始猜測值，不影響穩態解，只影響收斂速度。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      k;
+}
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0.1;
+
+boundaryField
+{
+    inlet
+    {
+        type            turbulentIntensityKineticEnergyInlet;
+        intensity       0.05;
+        value           uniform 0.1;
+    }
+    fluid3_outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 0.1;
+        value           uniform 0.1;
+    }
+    envelope
+    {
+        type            kqRWallFunction;
+        value           uniform 0.1;
+    }
+    ringSurface
+    {
+        type            kqRWallFunction;
+        value           uniform 0.1;
+    }
+    sealPlate
+    {
+        type            kqRWallFunction;
+        value           uniform 0.1;
+    }
+    sealPlate_slave
+    {
+        type            kqRWallFunction;
+        value           uniform 0.1;
+    }
+    fanSurface
+    {
+        type            kqRWallFunction;
+        value           uniform 0.1;
+    }
+}
