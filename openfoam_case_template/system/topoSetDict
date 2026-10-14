@@ -1,0 +1,85 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  topoSetDict - 範本（假值）
+  用途：(1) 從整個計算域選出旋轉區 cellZone（給 MRF 用，見 BC_RULES.md 第 4 節）
+       (2) 從外殼 patch 選出進口端、出口端的面（之後用 createPatch 拆成獨立 patch）
+
+  【這個檔案裡哪些數字是假的】
+  - rotatingZone 的 cylinderToCell：p1/p2/radius 同 snappyHexMeshDict 的
+    rotatingZoneRegion，真實值見該檔案的說明。
+  - inletFaces/outletFaces 的 boxToFace：這兩個 box 要分別框住計算域兩端的
+    端面（一個很薄的 Y 範圍，X/Z 範圍開很大即可涵蓋整個端面）。
+    真實值的 Y 位置 = 基準面 Y − 2D（進口端）與基準面 Y + 10D（出口端），
+    對應 blockMeshDict 的兩個軸向端點。
+
+  【為什麼要先 boxToFace 再 subset patchToFace】
+  boxToFace 選到的面可能包含網格「內部」的面（兩個流體 cell 之間的面），
+  但 createPatch 只能重新分類「外部」邊界面。所以每個 faceSet 都要再用
+  patchToFace 對 envelope（外殼 patch）取交集，確保只留下真正的邊界面。
+  這是本專案實際遇過的錯誤（createPatch 報 "not an external face"）之後
+  的修正做法。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      topoSetDict;
+}
+
+actions
+(
+    {
+        name    rotatingZone;
+        type    cellZoneSet;
+        action  new;
+        source  cylinderToCell;
+        sourceInfo
+        {
+            p1     (0.0 -0.1 0.0);
+            p2     (0.0  0.1 0.0);
+            radius 0.3;
+        }
+    }
+
+    {
+        name    inletFaces;
+        type    faceSet;
+        action  new;
+        source  boxToFace;
+        sourceInfo
+        {
+            box (-10 -2.01 -10) (10 -1.99 10);
+        }
+    }
+    {
+        name    inletFaces;
+        type    faceSet;
+        action  subset;
+        source  patchToFace;
+        sourceInfo
+        {
+            name envelope;
+        }
+    }
+
+    {
+        name    outletFaces;
+        type    faceSet;
+        action  new;
+        source  boxToFace;
+        sourceInfo
+        {
+            box (-10 9.99 -10) (10 10.01 10);
+        }
+    }
+    {
+        name    outletFaces;
+        type    faceSet;
+        action  subset;
+        source  patchToFace;
+        sourceInfo
+        {
+            name envelope;
+        }
+    }
+);
