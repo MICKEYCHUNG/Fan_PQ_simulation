@@ -1,0 +1,21 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  turbulenceProperties - kOmegaSST，見 BC_RULES.md 第 0 節（為什麼從
+  k-epsilon 改成 k-omega SST：對葉片表面逆壓梯度、分離流的預測較好）。
+  不含任何真實數值，直接沿用即可。
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      turbulenceProperties;
+}
+
+simulationType RAS;
+
+RAS
+{
+    RASModel        kOmegaSST;
+    turbulence      on;
+    printCoeffs     on;
+}
