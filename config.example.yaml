@@ -14,4 +14,11 @@ pressure_definition: "static"   # static 或 total,必須與實驗一致
 air:
   density_kg_m3: 1.2
 
-flow_points_m3_h: []        # 要模擬的流量點
+# P-Q 掃描(2026-10-15 改版):先以 P=0 求 Qmax,再依下列比例固定流量計算
+# Q_set = f x Qmax,由大到小依序計算(0 = 關死點,入口封死,見 BC_RULES.md 5.4)
+flow_fractions: [0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.0]
+
+# 結果取最後 N 次疊代平均(暫定值,首次試跑後確認)
+averaging_iterations: 200
+
+max_iterations: 3000        # 單點疊代上限
